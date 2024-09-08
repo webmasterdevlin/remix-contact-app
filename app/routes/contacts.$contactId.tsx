@@ -1,12 +1,10 @@
-import { type LoaderFunctionArgs, json } from "@remix-run/node";
+import { type LoaderFunctionArgs, type ActionFunctionArgs, json } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
-import type { FunctionComponent } from "react";
 
-import type { ContactRecord } from "../data";
-
-import { getContact } from "../data";
+import { getContact, updateContact } from "../data";
 
 import invariant from "tiny-invariant";
+import Favorite from "~/components/favorite";
 
 export const loader = async ({
   params,
@@ -19,7 +17,16 @@ export const loader = async ({
   return json({ contact });
 };
 
-
+export const action = async ({
+  params,
+  request,
+}: ActionFunctionArgs) => {
+  invariant(params.contactId, "Missing contactId param");
+  const formData = await request.formData();
+  return updateContact(params.contactId, {
+    favorite: formData.get("favorite") === "true",
+  });
+};
 
 export default function Contact() {
   const { contact } = useLoaderData<typeof loader>();
@@ -30,7 +37,7 @@ export default function Contact() {
         <img
           alt={`${contact.first} ${contact.last} avatar`}
           key={contact.avatar}
-          src={contact.avatar}
+          src={contact.avatar || 'https://ui-avatars.com/api/?name=no+name'}
         />
       </div>
 
@@ -83,24 +90,3 @@ export default function Contact() {
   );
 }
 
-const Favorite: FunctionComponent<{
-  contact: Pick<ContactRecord, "favorite">;
-}> = ({ contact }) => {
-  const favorite = contact.favorite;
-
-  return (
-    <Form method="post">
-      <button
-        aria-label={
-          favorite
-            ? "Remove from favorites"
-            : "Add to favorites"
-        }
-        name="favorite"
-        value={favorite ? "false" : "true"}
-      >
-        {favorite ? "★" : "☆"}
-      </button>
-    </Form>
-  );
-};
